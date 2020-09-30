@@ -37,25 +37,56 @@
  * -Joe Walnes
  * MIT License. See https://github.com/joewalnes/jstinytest/
  */
-const TinyTest = {
+
+
+var TinyTestHelper = {
+    renderStats: function(tests, failures) {
+        var numberOfTests = Object.keys(tests).length;
+        var numberOfSuccesses = numberOfTests - failures;
+
+        //Pluralizing
+        var testsWord = this.pluralize(numberOfTests, 'test');
+        var successesWord = this.pluralize(numberOfSuccesses, 'success');
+        var failuresWord = this.pluralize(failures, 'failure')
+        
+        var summaryString = `Ran ${numberOfTests} ${testsWord}: ${numberOfSuccesses} ${successesWord}, ${failures} ${failuresWord}.`;
+        var summaryElement = document.createElement('h1');
+        summaryElement.textContent = summaryString;
+        document.body.appendChild(summaryElement);
+    },
+    pluralize: function(count, word) {
+        if (count === 1) {
+            return word;
+        } else {
+            if (word === 'success') {
+                return word + 'es';
+            }
+            return word + 's';
+        }
+    }
+};
+
+var TinyTest = {
 
     run: function(tests) {
         let failures = 0;
         for (let testName in tests) {
             let testAction = tests[testName];
             try {
-                testAction();
-                console.log('Test:', testName, 'OK');
+                testAction.apply(this);
+                console.log(`%c${testName}`, 'color: green');
             } catch (e) {
                 failures++;
-                console.error('Test:', testName, 'FAILED', e);
+                console.groupCollapsed('%c' + testName, 'color: red;');
                 console.error(e.stack);
+                console.groupEnd();
             }
         }
         setTimeout(function() { // Give document a chance to complete
             if (window.document && document.body) {
                 document.body.style.backgroundColor = (failures == 0 ? '#99ff99' : '#ff9999');
-            }
+                TinyTestHelper.renderStats(tests, failures);
+            }   
         }, 0);
     },
 
@@ -63,19 +94,7 @@ const TinyTest = {
         throw new Error('fail(): ' + msg);
     },
 
-    assert: function(value, msg) {
-        if (!value) {
-            throw new Error('assert(): ' + msg);
-        }
-    },
-
-    assertEquals: function(expected, actual) {
-        if (expected != actual) {
-            throw new Error('assertEquals() "' + expected + '" != "' + actual + '"');
-        }
-    },
-
-    assertStrictEquals: function(expected, actual) {
+    assert: function(expected, actual) {
         if (expected !== actual) {
             throw new Error('assertStrictEquals() "' + expected + '" !== "' + actual + '"');
         }
@@ -83,9 +102,7 @@ const TinyTest = {
 
 };
 
-const fail                = TinyTest.fail,
+var fail                = TinyTest.fail,
       assert              = TinyTest.assert,
-      assertEquals        = TinyTest.assertEquals,
-      eq                  = TinyTest.assertEquals, // alias for assertEquals
-      assertStrictEquals  = TinyTest.assertStrictEquals,
+      eq                  = TinyTest.assert, 
       tests               = TinyTest.run;
